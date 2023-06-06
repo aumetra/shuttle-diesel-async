@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1.68"
 diesel-async = { version = "0.3.0", features = ["postgres", "deadpool"] }
-diesel_migrations_async = { git = "https://github.com/aumetra/diesel_migrations_async.git", rev = "296db45f2b2120a496f7231537685fe5974c0829", features = [
+diesel_migrations_async = { git = "https://github.com/aumetra/diesel_migrations_async.git", rev = "0a7a82f892b61c371a98b82653291891e869e284", features = [
     "postgres",
 ] }
 serde = { version = "1.0.163", features = ["derive"] }

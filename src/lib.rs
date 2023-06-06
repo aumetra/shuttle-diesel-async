@@ -17,7 +17,6 @@ pub use diesel_migrations_async;
 pub struct Postgres {
     #[serde(flatten)]
     db_input: DbInput,
-    #[serde(skip)]
     migrations: Option<EmbeddedMigrations>,
 }
 
