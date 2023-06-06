@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 use diesel_async::{
     pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
-    AsyncConnection, AsyncPgConnection,
+    AsyncPgConnection,
 };
-use diesel_migrations_async::{EmbeddedMigrations, MigrationHarness};
 use serde::Serialize;
 use shuttle_service::{
     database::{SharedEngine, Type as DatabaseType},
@@ -13,11 +12,12 @@ use shuttle_service::{
 pub use diesel_async;
 pub use diesel_migrations_async;
 
+const MAX_POOL_SIZE: usize = 5;
+
 #[derive(Default, Serialize)]
 pub struct Postgres {
     #[serde(flatten)]
     db_input: DbInput,
-    migrations: Option<EmbeddedMigrations>,
 }
 
 impl Postgres {
@@ -26,14 +26,6 @@ impl Postgres {
             db_input: DbInput {
                 local_uri: Some(local_uri.to_string()),
             },
-            ..self
-        }
-    }
-
-    pub fn migrations(self, migrations: EmbeddedMigrations) -> Self {
-        Self {
-            migrations: Some(migrations),
-            ..self
         }
     }
 }
@@ -73,15 +65,6 @@ impl ResourceBuilder<Pool<AsyncPgConnection>> for Postgres {
             DbOutput::Info(conn_data)
         };
 
-        if let Some(migrations) = self.migrations {
-            let conn_string = get_connection_string(&db_output);
-            let mut conn = AsyncPgConnection::establish(&conn_string)
-                .await
-                .map_err(|err| shuttle_service::Error::Custom(err.into()))?;
-
-            conn.run_pending_migrations(migrations).await.unwrap();
-        }
-
         Ok(db_output)
     }
 
@@ -91,6 +74,7 @@ impl ResourceBuilder<Pool<AsyncPgConnection>> for Postgres {
         let conn_string = get_connection_string(db_output);
         let config = AsyncDieselConnectionManager::new(conn_string);
         Pool::builder(config)
+            .max_size(MAX_POOL_SIZE)
             .build()
             .map_err(|err| shuttle_service::Error::Custom(err.into()))
     }
