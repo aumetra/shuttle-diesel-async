@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-trait = "0.1.68"
-diesel-async = { version = "0.3.0", features = ["postgres", "deadpool"] }
-diesel_migrations_async = { git = "https://github.com/aumetra/diesel_migrations_async.git", rev = "296db45f2b2120a496f7231537685fe5974c0829", features = [
+async-trait = "0.1.73"
+diesel-async = { version = "0.4.1", features = ["postgres", "deadpool"] }
+diesel_migrations_async = { git = "https://github.com/aumetra/diesel_migrations_async.git", rev = "8e7085e7c93baca31b817b1814e14c4ac2beb2c4", features = [
     "postgres",
 ] }
-serde = { version = "1.0.163", features = ["derive"] }
-shuttle-service = { version = "0.19.0", default-features = false }
+serde = { version = "1.0.188", features = ["derive"] }
+shuttle-service = { version = "0.27.0", default-features = false }
