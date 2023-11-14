@@ -10,4 +10,4 @@ diesel_migrations_async = { git = "https://github.com/aumetra/diesel_migrations_
     "postgres",
 ] }
 serde = { version = "1.0.171", features = ["derive"] }
-shuttle-service = { version = "0.30.0", default-features = false }
+shuttle-service = { version = "0.32.0", default-features = false }
