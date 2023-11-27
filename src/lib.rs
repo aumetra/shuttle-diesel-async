@@ -10,7 +10,6 @@ use shuttle_service::{
 };
 
 pub use diesel_async;
-pub use diesel_migrations_async;
 
 const MAX_POOL_SIZE: usize = 5;
 
