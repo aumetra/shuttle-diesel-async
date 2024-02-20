@@ -1,6 +1,6 @@
 # shuttle-diesel-async
 
-`diesel-async` resource for Shuttle services exporting a compatible crate for migrations.
+`diesel-async` resource for Shuttle services
 
 ## License
 

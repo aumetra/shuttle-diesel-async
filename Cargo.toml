@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-trait = "0.1.71"
-diesel-async = { version = "0.4.1", features = ["postgres", "deadpool"] }
-serde = { version = "1.0.171", features = ["derive"] }
-shuttle-service = { version = "0.36.0", default-features = false }
+async-trait = "0.1.77"
+diesel-async = { version = "0.4.1", features = ["postgres"] }
+serde = { version = "1.0.197", features = ["derive"] }
+shuttle-service = { version = "0.39.0", default-features = false }
+
+[features]
+bb8 = ["diesel-async/bb8"]
+deadpool = ["diesel-async/deadpool"]
