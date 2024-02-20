@@ -18,6 +18,7 @@ use diesel_async::pooled_connection::deadpool;
 
 pub use diesel_async;
 
+#[cfg(any(feature = "bb8", feature = "deadpool"))]
 const MAX_POOL_SIZE: usize = 5;
 
 #[derive(Deserialize, Serialize)]

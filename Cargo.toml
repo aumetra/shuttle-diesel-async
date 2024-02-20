@@ -10,6 +10,5 @@ serde = { version = "1.0.197", features = ["derive"] }
 shuttle-service = { version = "0.39.0", default-features = false }
 
 [features]
-default = ["bb8", "deadpool"]
 bb8 = ["diesel-async/bb8"]
 deadpool = ["diesel-async/deadpool"]
