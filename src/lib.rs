@@ -108,7 +108,9 @@ impl IntoResource<bb8::Pool<AsyncPgConnection>> for Wrapper {
 #[async_trait]
 #[cfg(feature = "deadpool")]
 impl IntoResource<deadpool::Pool<AsyncPgConnection>> for Wrapper {
-    async fn into_resource(self) -> Result<deadpool::Pool<AsyncPgConnection>, shuttle_service::Error> {
+    async fn into_resource(
+        self,
+    ) -> Result<deadpool::Pool<AsyncPgConnection>, shuttle_service::Error> {
         deadpool::Pool::builder(get_pool_manager(&self.0))
             .max_size(MAX_POOL_SIZE)
             .build()
