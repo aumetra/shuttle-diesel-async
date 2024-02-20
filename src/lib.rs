@@ -1,21 +1,31 @@
 use async_trait::async_trait;
-use diesel_async::{
-    pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
-    AsyncPgConnection,
-};
-use serde::Serialize;
+use diesel_async::{AsyncConnection, AsyncPgConnection};
+use serde::{Deserialize, Serialize};
 use shuttle_service::{
     database::{SharedEngine, Type as DatabaseType},
-    DbInput, DbOutput, Factory, ResourceBuilder, Type,
+    resource::Type,
+    DatabaseResource, DbInput, Factory, IntoResource, ResourceBuilder,
 };
+
+#[cfg(any(feature = "bb8", feature = "deadpool"))]
+use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+
+#[cfg(feature = "bb8")]
+use diesel_async::pooled_connection::bb8;
+
+#[cfg(feature = "deadpool")]
+use diesel_async::pooled_connection::deadpool;
 
 pub use diesel_async;
 
 const MAX_POOL_SIZE: usize = 5;
 
-#[derive(Default, Serialize)]
+#[derive(Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct Wrapper(DatabaseResource);
+
+#[derive(Default)]
 pub struct Postgres {
-    #[serde(flatten)]
     db_input: DbInput,
 }
 
@@ -29,52 +39,78 @@ impl Postgres {
     }
 }
 
-fn get_connection_string(db_output: &DbOutput) -> String {
+#[inline]
+#[cfg(any(feature = "bb8", feature = "deadpool"))]
+fn get_pool_manager(
+    db_output: &DatabaseResource,
+) -> AsyncDieselConnectionManager<AsyncPgConnection> {
+    AsyncDieselConnectionManager::new(get_connection_string(db_output))
+}
+
+#[inline]
+fn get_connection_string(db_output: &DatabaseResource) -> String {
     match db_output {
-        DbOutput::Info(ref info) => info.connection_string_private(),
-        DbOutput::Local(ref local) => local.clone(),
+        DatabaseResource::ConnectionString(conn_str) => conn_str.clone(),
+        DatabaseResource::Info(info) => info.connection_string_shuttle(),
     }
 }
 
 #[async_trait]
-impl ResourceBuilder<Pool<AsyncPgConnection>> for Postgres {
+impl ResourceBuilder for Postgres {
     const TYPE: Type = Type::Database(DatabaseType::Shared(SharedEngine::Postgres));
 
-    type Config = Self;
-    type Output = DbOutput;
-
-    fn new() -> Self {
-        Self::default()
-    }
+    type Config = DbInput;
+    type Output = Wrapper;
 
     fn config(&self) -> &Self::Config {
-        self
+        &self.db_input
     }
 
     async fn output(
         self,
         factory: &mut dyn Factory,
     ) -> Result<Self::Output, shuttle_service::Error> {
-        let db_output = if let Some(local_uri) = self.db_input.local_uri {
-            DbOutput::Local(local_uri)
+        let resource = if let Some(local_uri) = self.db_input.local_uri {
+            DatabaseResource::ConnectionString(local_uri)
         } else {
-            let conn_data = factory
+            let conn_info = factory
                 .get_db_connection(DatabaseType::Shared(SharedEngine::Postgres))
                 .await?;
-            DbOutput::Info(conn_data)
+            DatabaseResource::Info(conn_info)
         };
 
-        Ok(db_output)
+        Ok(Wrapper(resource))
     }
+}
 
-    async fn build(
-        db_output: &Self::Output,
-    ) -> Result<Pool<AsyncPgConnection>, shuttle_service::Error> {
-        let conn_string = get_connection_string(db_output);
-        let config = AsyncDieselConnectionManager::new(conn_string);
-        Pool::builder(config)
+#[async_trait]
+impl IntoResource<AsyncPgConnection> for Wrapper {
+    async fn into_resource(self) -> Result<AsyncPgConnection, shuttle_service::Error> {
+        AsyncPgConnection::establish(&get_connection_string(&self.0))
+            .await
+            .map_err(|err| shuttle_service::Error::Database(err.to_string()))
+    }
+}
+
+#[async_trait]
+#[cfg(feature = "bb8")]
+impl IntoResource<bb8::Pool<AsyncPgConnection>> for Wrapper {
+    async fn into_resource(self) -> Result<bb8::Pool<AsyncPgConnection>, shuttle_service::Error> {
+        bb8::Pool::builder()
+            .max_size(MAX_POOL_SIZE as u32)
+            .build(get_pool_manager(&self.0))
+            .await
+            .map_err(|err| shuttle_service::Error::Database(err.to_string()))
+    }
+}
+
+#[async_trait]
+#[cfg(feature = "deadpool")]
+impl IntoResource<deadpool::Pool<AsyncPgConnection>> for Wrapper {
+    async fn into_resource(self) -> Result<deadpool::Pool<AsyncPgConnection>, shuttle_service::Error> {
+        deadpool::Pool::builder(get_pool_manager(&self.0))
             .max_size(MAX_POOL_SIZE)
             .build()
-            .map_err(|err| shuttle_service::Error::Custom(err.into()))
+            .map_err(|err| shuttle_service::Error::Database(err.to_string()))
     }
 }
