@@ -7,7 +7,7 @@ edition = "2021"
 async-trait = "0.1.77"
 diesel-async = { version = "0.4.1", features = ["postgres"] }
 serde = { version = "1.0.197", features = ["derive"] }
-shuttle-service = { version = "0.39.0", default-features = false }
+shuttle-service = { version = "0.41.0", default-features = false }
 
 [features]
 bb8 = ["diesel-async/bb8"]
